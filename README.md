@@ -1,142 +1,127 @@
-# self-evolve-harness — Standalone 1.4
+<div align="center">
 
-**CLI First · SDK Optional · Fast by default · Evidence-gated improvement**
+# self-evolve-harness
 
-A standalone Python coding harness with built-in templates, a bounded workflow runner, deterministic evaluators, evidence-gated prompt/Skill changes, a local memory backend and an opt-in Harness²-inspired optimization engine. It does **not** require Claude Agent SDK or a cloud API to install, generate configuration, run offline fixtures, or run deterministic tasks.
+**Shared workflows. Verified changes. Better AI coding.**
 
-> **Scope and compatibility:** This distribution is an independently implemented, self-contained version of the design discussed for `jumtra/self-evolve-harness`. It is **not a git checkout or byte-for-byte upgrade of that upstream repository**. Before migrating an existing workspace, inspect the generated diff and retain a Git backup. See [compatibility and limitations](docs/COMPATIBILITY.md).
+A development workflow CLI for Claude Code, Codex, and OpenCode
 
-## Requirements
+**English** · [日本語](README.ja.md)
 
-- Python **3.11+**, macOS or Linux. Windows is not a tested target.
-- For real agent work: install and authenticate the vendor CLI for Claude Code, OpenAI Codex or OpenCode. **AGY configuration generation is available, but third-party CLI wrapping is disabled** under known consumer-plan restrictions.
-- For CodeGraph/Graphify: install the chosen external tool separately and explicitly opt into indexing.
-- For PR operations: GitHub CLI (`gh`) installed and authenticated.
+<sub>Python 3.11+ &nbsp; / &nbsp; macOS &amp; Linux &nbsp; / &nbsp; Optimization OFF by default</sub>
 
-## Install
+</div>
 
-**No installation or network required:**
+## What can it do?
 
-```bash
-unzip seh_full_standalone.zip
-cd seh_full_standalone
-python3 run_seh.py --version
-python3 run_seh.py modules list
-```
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/assets/workflow-en-mobile.svg">
+  <img src="docs/assets/workflow-en.svg" alt="Three workflows after setup: everyday development, work with tests, and workflow improvement" width="1080">
+</picture>
 
-**Optional shell command installation** (requires setuptools; network access may be needed to fetch build dependencies):
+| Goal | Capability |
+|---|---|
+| Set up your AI tools | Generate and sync host-specific Skills, Agent definitions, and instructions |
+| Split up work | Choose hosts and models per task; run independent tasks in parallel |
+| Verify changes | Run tests, bounded repairs, status checks, and explicit workspace apply |
+| Improve workflows | Evaluate and compare Skills/prompts, approve promotion, and roll back |
+| Reuse knowledge | Save and search local memory; search project code |
+
+Everyday work adds no optimization calls. Improvement and optimization run only when requested (optimization is OFF by default). AGY supports configuration generation only.
+
+## Usage
+
+### 1. Install
+
+Requires Python **3.11+** on macOS / Linux. Run from this repository's directory.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
 seh --version
-# Optional: python -m pip install -e '.[dev]' && python -m pytest -q
 ```
 
-Runtime dependencies: **Python standard library only**. For the included automated suite, install `pytest` separately (`pip install pytest`). If pip is offline or cannot download setuptools, use `python3 run_seh.py` or `./bin/seh` directly (no install).
+To try without installing, replace `seh` with `python3 run_seh.py`. Real AI work also requires an installed and authenticated Claude Code, Codex, or OpenCode CLI.
 
-## First use (dry-run first)
+### 2. Set up a project
+
+Replace `/path/to/project` with your project path. Set `--hosts` to the hosts you use (for example, `claude,codex,opencode`).
 
 ```bash
-seh init --root /path/to/your/project --profile balanced --hosts claude,codex,opencode,agy --graph none
-seh init --root /path/to/your/project --profile balanced --hosts claude,codex,opencode,agy --graph none --apply
-seh doctor --root /path/to/your/project
-seh sync --root /path/to/your/project      # diff only
-seh sync --root /path/to/your/project --apply
+# Preview generated files and changes
+seh init --root /path/to/project --hosts codex --profile balanced
+
+# Generate configuration and check setup
+seh init --root /path/to/project --hosts codex --profile balanced --apply
+seh doctor --root /path/to/project
 ```
 
-Profile `balanced` installs two Skills (`harness-init`, `work`), four Subagent definitions per available host, short host instructions, no always-on Python Hook, and generated file ownership manifests. Full profile optionally adds a narrow Bash pre-use Hook. All unrelated project files are retained. The first CLI invocation never installs vendor CLIs, MCPs, CodeGraph, or Graphify.
+The `balanced` profile generates two Skills (`harness-init`, `work`) and four Agent definitions per host.
 
-## Fast / Verified / Optimize
+### 3. Everyday development
 
-| Mode | When | Runtime behavior |
-|---|---|---|
-| **Fast** (default) | Daily coding | Use vendor coding CLI directly and native `/work` Skill; **no extra optimization calls** and no always-on custom Hook in balanced profile. `seh work native` is just a hint. |
-| **Verified** | Multi-file / higher-risk tasks | `seh work plan`, `seh work run`, independent tests, bounded repairs, checkpoints, opt-in apply. |
-| **Optimize** (OFF by default) | Improve the harness itself | Explicit `seh optimize` tasks, base/candidate isolated copies, compare, independent authoring gate, human approval for promotion. |
+Start your AI CLI in the target project and ask `/work` to do the task.
 
-For a fully offline end-to-end example:
-
-```bash
-seh init --root examples/demo_project --apply
-seh work run --root examples/demo_project --task examples/demo_project/work-task.json --host mock
-seh work run --root examples/demo_project --task examples/demo_project/work-task.json --host mock --apply --approve
-seh eval run --root examples/demo_project --suite examples/demo_project/eval-suite.json --host mock
-seh memory add 'Check auth expiry first' --root examples/demo_project --tags auth
-seh code search 'expiry' --root examples/demo_project
-seh bench --root examples/demo_project --trials 10
+```text
+/work Add timeout input validation and run the relevant tests
 ```
 
-`mock` is a deterministic offline test adapter, **not a model**. Mock results cannot be used as real proof of prompting improvements or automatic promotion.
+### 4. Run with a plan and tests
 
-### Agent work with a real host
-
-Create or obtain a JSON task spec (see [example](examples/demo_project/work-task.json)) and use:
+This example uses Codex. You can change `--host` to `claude` or `opencode`.
 
 ```bash
-seh work plan --root . --goal 'Add timeout validation' --host codex --scope 'src/**,tests/**' --execute --out task.json
+cd /path/to/project
+
+# Generate a task plan
+seh work plan --root . --goal 'Add timeout input validation' \
+  --host codex --scope 'src/**,tests/**' --execute --out task.json
+
+# Review task.json and set checks to your project's test commands before running
 seh work run --root . --task task.json --host codex --trust-cli
-# Inspect run / staged diff before any user workspace apply:
+
+# Inspect results using the run_id from the output
 seh work status <run-id> --root .
+
+# After reviewing the plan and results, rerun and apply successful changes
 seh work run --root . --task task.json --host codex --trust-cli --apply --approve
 ```
 
-**Security:** `--trust-cli` is a trust decision. A copy of the working tree or Git worktree is **not an OS sandbox**. Do not run untrusted scripts with secrets in the environment. Read [SECURITY.md](docs/SECURITY.md) before giving a model write permission. For fully isolated runs you must provide and verify an external OS sandbox; this distribution does not pretend that an unchecked container is safe.
+Adjust `--scope` and tests to your project. The [Task JSON example](examples/multihost/task.json) shows hosts, models, tests, and dependencies.
 
-### Prompt/Skill authoring (two public skills, not nine)
+`--trust-cli` permits external CLI execution. Working copies are not OS sandboxes. See [security](docs/SECURITY.md) for execution requirements.
 
-```bash
-seh author lint --root .
-seh author plan --root . --skill work --field skill.description --goal 'Reduce false triggering'
-seh author candidate --root . --skill work --field skill.description --replacement-file new-description.txt --goal 'Reduce false triggering'
-seh author gate --root . --candidate .harness/state/candidates/<candidate-id>.json --suite tests/fixtures/authoring.json --host codex --out gate.json
-seh author promote --root . --candidate .harness/state/candidates/<candidate-id>.json --gate gate.json --approval-ref human:decision-123 --approve
-seh author rollback <promotion-id> --root .
-```
+### 5. Try without AI or an API
 
-Authoring follows **Explore → Decide → Plan → Baseline → Implement → Verify & Repair → Compare → Approve**. Gates require independent testing, including training, regression, holdout and security cases. Claude/Codex/OpenCode differences are adapter-specific. A local approval reference is an audit reference, **not a cryptographic identity proof**.
-
-### Optimization (off unless explicitly configured)
+Run from this repository's directory.
 
 ```bash
-seh optimize status --root .
-seh optimize doctor --root . --host codex
-seh optimize configure --root . --mode shadow --profile lite --cost-policy manual_consent --apply
-seh optimize plan --root . --fixture tests/fixtures/authoring.json --host codex --model <fixed-model-id> --skill work --field skill.description
-seh optimize propose <experiment-id> --root . --replacement-file new-description.txt
-seh optimize run <experiment-id> --root . --execute --spend-approval human:spending-123
-seh optimize report <experiment-id> --root .
+# Copy the demo to a temporary directory
+DEMO_ROOT=$(mktemp -d)
+cp -R examples/demo_project/. "$DEMO_ROOT/"
+
+python3 run_seh.py init --root "$DEMO_ROOT" --apply
+python3 run_seh.py work run --root "$DEMO_ROOT" \
+  --task "$DEMO_ROOT/work-task.json" --host mock --apply --approve
+python3 run_seh.py eval run --root "$DEMO_ROOT" \
+  --suite "$DEMO_ROOT/eval-suite.json" --host mock
+cat "$DEMO_ROOT/result.txt"
 ```
 
-By default real-host optimization is blocked until external isolation is verified; a knowledgeable user can explicitly opt into trusted-local mode with `--trusted-local` and a spending approval. **This removes isolation guarantees**, even though runs are copied to separate working directories. No actual money cap can be enforced purely from a CLI's post-hoc usage report; `require_metered` fails closed.
+`mock` is a deterministic offline test driver, not an AI model.
 
-**Full Harness²-style variant** is explicitly optional and research-oriented: configure `--profile full --max-candidates 3 --max-probe-runs 6`, then call `seh optimize full --fixture ... --host codex --rounds 1 --execute --spend-approval ...`; it produces invariant/domain/composed candidates and independent probes. It never auto-promotes.
+### Other operations
 
-## Components / commands
-
-| Command | Function |
+| Action | Command |
 |---|---|
-| `init`, `sync`, `doctor`, `migrate` | Detect, generate host files, keep ownership, snapshot and restore |
-| `modules list/resolve/scaffold` | Declarative extension registry; never autoexecute module manifests |
-| `work native/plan/run/status/resume/cancel` | Fast or managed bounded DAG and checkpoint |
-| `eval run/compare` | Structured, fresh-workspace deterministic fixtures and regression comparison |
-| `author lint/plan/candidate/gate/promote/rollback` | Prompt/Skill authoring, evidence gate, human-approved CAS promotion |
-| `evolve observe/propose/lesson` | Learn from actual evidence and recommend revisions |
-| `optimize ...` | Harness² Lite and optional Full Probe/Compose |
-| `memory ...` | File memory or configured Engram-compatible MCP (requires actual server tool names) |
-| `code ...` | CodeGraph / Graphify / local text fallback, with honest capability reporting |
-| `tool list/call`, `prompt ...` | Validated deterministic tools, custom manifest tools, output contracts/versioned prompts |
-| `pr ...` | Optional `gh` PR creation and feedback lookup; writes require approval |
-| `hook pre-tool`, `events tail`, `bench` | Lightweight checks, append-only events, startup-overhead measurement |
+| Preview and sync configuration | `seh sync --root .` → `seh sync --root . --apply` |
+| Save and search notes | `seh memory add 'Check auth expiry first' --root .` / `seh memory search 'auth' --root .` |
+| Search code | `seh code search 'timeout' --root .` |
+| Lint Skills | `seh author lint --root .` |
+| Check optimization status | `seh optimize status --root .` |
+| Refresh CLI compatibility information | `seh hosts refresh` |
+| Refresh model information | `seh models refresh --host opencode` |
+| See all options | `seh --help` / `seh work run --help` |
 
-For full capabilities, examples and explicit external limitations, see [COMPATIBILITY.md](docs/COMPATIBILITY.md), [ARCHITECTURE.md](docs/ARCHITECTURE.md), [SECURITY.md](docs/SECURITY.md), [TESTING.md](docs/TESTING.md), and [implementation matrix](docs/IMPLEMENTATION_MATRIX.md).
-
-## Provenance
-
-This package implements original standalone code based on concepts from the user's `self-evolve-harness` and Google's [Harness²](https://github.com/google-research/harness2) research, plus the supplied videos. The full upstream repository was not cloned in this environment; no upstream source files were copied. It uses the **MIT license** for its new code. Vendor tools and third-party providers have their own licenses and terms.
-
-
-## v1.4.1: Task routing and verified self-update
-
-Task-level / DAG node-level host and model routing (`single`, `fallback`, `compare`), version-sensitive local CLI flag probing, cached model discovery, and the `harness update` / `seh update` command are documented in [the host/task/model/update contract](docs/HOST_TASK_MODEL_UPDATES.md). The new version supports multiple project languages without requiring Python code in the target project. No external vendor CLI was authenticated for this build; offline tests do not imply vendor E2E compliance.
+Details: [Capabilities](docs/IMPLEMENTATION_MATRIX.md) · [Hosts, models & updates](docs/HOST_TASK_MODEL_UPDATES.md) · [Compatibility & limitations](docs/COMPATIBILITY.md)

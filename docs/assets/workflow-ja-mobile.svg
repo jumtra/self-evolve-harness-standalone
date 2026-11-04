@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="1170" viewBox="0 0 480 1170" role="img" aria-labelledby="title desc">
+<title id="title">プロジェクトに導入して、作業に合う進め方を選ぶ</title>
+<desc id="desc">普段の開発: AI CLIを起動 → /work で依頼 → 実装・テスト / テスト付きの作業: 計画を作成 → 実装 → テスト・修正 → 承認して適用 / 開発手順の改善: 変更候補を作成 → 評価 → 比較 → 承認して採用</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/></linearGradient></defs>
+<rect width="480" height="1170" rx="24" fill="url(#bg)"/>
+<g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP','Hiragino Kaku Gothic ProN',Meiryo,sans-serif">
+<text x="28" y="40" font-size="13" fill="#94a3b8" font-weight="600">SELF-EVOLVE-HARNESS</text>
+<text x="28" y="77" font-size="18" fill="#f8fafc" font-weight="600">プロジェクトに導入して、作業に合う進め方を選ぶ</text>
+<rect x="28" y="100" width="424" height="100" rx="16" fill="#ffffff" fill-opacity="0.06" stroke="#475569"/>
+<text x="48" y="126" font-size="11" fill="#93c5fd" font-weight="700">SETUP</text>
+<text x="48" y="155" font-size="18" fill="#f8fafc" font-weight="600">共通の開発環境を、一度で。</text>
+<text x="48" y="181" font-size="14" fill="#cbd5e1" font-weight="400">Skill・Agent・指示ファイルを生成</text>
+<rect x="28" y="224" width="424" height="288" rx="16" fill="#f8fafc"/>
+<rect x="48" y="244" width="92" height="25" rx="12.5" fill="#ecfdf5" stroke="#34d399"/>
+<text x="61" y="261" font-size="11" fill="#064e3b" font-weight="700">FAST</text>
+<text x="48" y="301" font-size="23" fill="#0f172a" font-weight="700">普段の開発</text>
+<text x="48" y="326" font-size="14" fill="#475569" font-weight="400">いつものAI CLIから、すぐに作業。</text>
+<path d="M61 358 V440" stroke="#34d399" stroke-width="2"/>
+<circle cx="61" cy="361" r="11" fill="#064e3b"/>
+<text x="57.6" y="365" font-size="11" fill="#fff" font-weight="600">1</text>
+<text x="84" y="367" font-size="17" fill="#0f172a" font-weight="500">AI CLIを起動</text>
+<circle cx="61" cy="399" r="11" fill="#064e3b"/>
+<text x="57.6" y="403" font-size="11" fill="#fff" font-weight="600">2</text>
+<text x="84" y="405" font-size="17" fill="#0f172a" font-weight="500">/work で依頼</text>
+<circle cx="61" cy="437" r="11" fill="#064e3b"/>
+<text x="57.6" y="441" font-size="11" fill="#fff" font-weight="600">3</text>
+<text x="84" y="443" font-size="17" fill="#0f172a" font-weight="500">実装・テスト</text>
+<path d="M48 467 H432" stroke="#e2e8f0"/>
+<text x="48" y="492" font-size="13" fill="#475569" font-weight="400">追加の最適化呼び出しなし</text>
+<rect x="28" y="532" width="424" height="288" rx="16" fill="#f8fafc"/>
+<rect x="48" y="552" width="92" height="25" rx="12.5" fill="#eff6ff" stroke="#60a5fa"/>
+<text x="61" y="569" font-size="11" fill="#1e3a8a" font-weight="700">VERIFIED</text>
+<text x="48" y="609" font-size="23" fill="#0f172a" font-weight="700">テスト付きの作業</text>
+<text x="48" y="634" font-size="14" fill="#475569" font-weight="400">複雑な変更を、計画から適用まで。</text>
+<path d="M61 666 V748" stroke="#60a5fa" stroke-width="2"/>
+<circle cx="61" cy="669" r="11" fill="#1e3a8a"/>
+<text x="57.6" y="673" font-size="11" fill="#fff" font-weight="600">1</text>
+<text x="84" y="675" font-size="17" fill="#0f172a" font-weight="500">計画を作成</text>
+<circle cx="61" cy="707" r="11" fill="#1e3a8a"/>
+<text x="57.6" y="711" font-size="11" fill="#fff" font-weight="600">2</text>
+<text x="84" y="713" font-size="17" fill="#0f172a" font-weight="500">実装 → テスト・修正</text>
+<circle cx="61" cy="745" r="11" fill="#1e3a8a"/>
+<text x="57.6" y="749" font-size="11" fill="#fff" font-weight="600">3</text>
+<text x="84" y="751" font-size="17" fill="#0f172a" font-weight="500">承認して適用</text>
+<path d="M48 775 H432" stroke="#e2e8f0"/>
+<text x="48" y="800" font-size="13" fill="#475569" font-weight="400">ホスト・モデルをタスクごとに選択</text>
+<rect x="28" y="840" width="424" height="288" rx="16" fill="#f8fafc"/>
+<rect x="48" y="860" width="92" height="25" rx="12.5" fill="#f5f3ff" stroke="#a78bfa"/>
+<text x="61" y="877" font-size="11" fill="#4c1d95" font-weight="700">OPTIMIZE</text>
+<text x="48" y="917" font-size="23" fill="#0f172a" font-weight="700">開発手順の改善</text>
+<text x="48" y="942" font-size="14" fill="#475569" font-weight="400">評価結果をもとに、手順を磨く。</text>
+<path d="M61 974 V1056" stroke="#a78bfa" stroke-width="2"/>
+<circle cx="61" cy="977" r="11" fill="#4c1d95"/>
+<text x="57.6" y="981" font-size="11" fill="#fff" font-weight="600">1</text>
+<text x="84" y="983" font-size="17" fill="#0f172a" font-weight="500">変更候補を作成</text>
+<circle cx="61" cy="1015" r="11" fill="#4c1d95"/>
+<text x="57.6" y="1019" font-size="11" fill="#fff" font-weight="600">2</text>
+<text x="84" y="1021" font-size="17" fill="#0f172a" font-weight="500">評価 → 比較</text>
+<circle cx="61" cy="1053" r="11" fill="#4c1d95"/>
+<text x="57.6" y="1057" font-size="11" fill="#fff" font-weight="600">3</text>
+<text x="84" y="1059" font-size="17" fill="#0f172a" font-weight="500">承認して採用</text>
+<path d="M48 1083 H432" stroke="#e2e8f0"/>
+<text x="48" y="1108" font-size="13" fill="#475569" font-weight="400">必要なときだけ実行 · 初期OFF</text>
+<text x="28" y="1147" font-size="12" fill="#94a3b8" font-weight="600">CLAUDE CODE  /  CODEX  /  OPENCODE</text>
+</g></svg>

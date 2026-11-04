@@ -1,112 +1,127 @@
-# self-evolve-harness 1.4.1 スタンドアロン実装
+<div align="center">
 
-**本ZIPには設計書だけでなく、実行可能なPythonソース、CLI、4ホスト向けテンプレート、サンプル、テストを含めています。**
+# self-evolve-harness
 
-これは `jumtra/self-evolve-harness` のGit checkoutではなく、本会話の要件に基づいた独立した実装です。既存プロジェクトを上書きする前に、`init`の差分表示とGitバックアップで確認してください。
+**AIコーディングに、共通の手順と確かな検証を。**
 
-## 必要なもの
+Claude Code・Codex・OpenCode向けの開発ワークフローCLI
 
-- Python 3.11以上（macOS/Linux）。Pythonパッケージの実行自体にAgent SDK・外部APIは不要です。
-- 実際にAIにコーディングさせる場合のみ、**Claude Code / Codex / OpenCode の対応CLI・ログイン設定**が別途必要です。
-- **AGYは設定・Skill・Agentファイル生成のみ対応**。外部CLIによる自動呼び出しは利用条件を理由に無効化しています。
-- CodeGraph・Graphify・Engram MCP・GitHub CLIは選択制。未導入時に存在すると偽りません。
+[English](README.md) · **日本語**
 
-## 1分で試す（pip不要）
+<sub>Python 3.11+ &nbsp; / &nbsp; macOS・Linux &nbsp; / &nbsp; 最適化は初期OFF</sub>
 
-```bash
-unzip seh_v141_autoupdate.zip
-cd seh_v141_autoupdate
-python3 run_seh.py --version
-python3 run_seh.py modules list
-python3 run_seh.py optimize status
-```
+</div>
 
-他の既存プロジェクトへ導入するときは、まず**変更内容を確認**します。
+## 何ができる？
 
-```bash
-python3 run_seh.py init --root /path/to/project --profile balanced --hosts claude,codex,opencode,agy --graph none
-python3 run_seh.py init --root /path/to/project --profile balanced --hosts claude,codex,opencode,agy --graph none --apply
-python3 run_seh.py doctor --root /path/to/project
-```
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/assets/workflow-ja-mobile.svg">
+  <img src="docs/assets/workflow-ja.svg" alt="導入後の3つの使い方：普段の開発、テスト付きの作業、開発手順の改善" width="1080">
+</picture>
 
-`balanced`は不要な常駐フックや自動LLM呼び出しを追加しません。最適化は初期OFFです。
+| やりたいこと | できること |
+|---|---|
+| AIの開発環境を揃える | ホストごとのSkill・Agent・指示ファイルを生成・同期 |
+| 作業を分担する | タスクごとにホスト・モデルを選択し、依存関係に沿って並列実行 |
+| 変更を検証する | テスト、回数制限付きの修正、実行状況の確認、明示的な適用 |
+| 開発手順を改善する | Skill・プロンプトの評価・比較、承認付きの採用、ロールバック |
+| 知見を再利用する | ローカルメモリへの保存・検索、コード検索 |
 
-## CLIをオフラインでインストールする（任意）
+普段の開発では追加の最適化呼び出しはありません。自己改善・最適化は必要なときだけ実行します（初期OFF）。AGYは設定ファイル生成のみ対応です。
+
+## 使い方
+
+### 1. インストール
+
+Python **3.11以上**、macOS / Linuxが必要です。このリポジトリのディレクトリで実行します。
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --no-index ./dist/self_evolve_harness_standalone-0.0.1-py3-none-any.whl
+python -m pip install -e .
 seh --version
 ```
 
-これでホスト内のSkillから`seh`コマンドを呼び出せます。pipを使わない場合は`./bin/seh`または`python3 run_seh.py`が使用できますが、ホストから`seh`として呼ぶなら`bin`をPATHへ追加してください。
+インストールせず試す場合は、`seh`の代わりに`python3 run_seh.py`を使えます。実際のAI作業には、利用するClaude Code / Codex / OpenCode CLIのインストールと認証が別途必要です。
 
-## オフラインの実動デモ
+### 2. プロジェクトに導入
 
-サンプルを作業用ディレクトリへコピーして、DAG実行と評価を試せます。
+`/path/to/project`を対象プロジェクトのパスに置き換えます。`--hosts`には利用するホストを指定してください（例：`claude,codex,opencode`）。
 
 ```bash
-cp -R examples/demo_project /tmp/seh-demo
-python3 run_seh.py init --root /tmp/seh-demo --apply
-python3 run_seh.py work run --root /tmp/seh-demo --task /tmp/seh-demo/work-task.json --host mock --apply --approve
-python3 run_seh.py eval run --root /tmp/seh-demo --suite /tmp/seh-demo/eval-suite.json --host mock
-cat /tmp/seh-demo/result.txt
+# 生成されるファイルと差分を確認
+seh init --root /path/to/project --hosts codex --profile balanced
+
+# 設定を生成して、状態を確認
+seh init --root /path/to/project --hosts codex --profile balanced --apply
+seh doctor --root /path/to/project
 ```
 
-`mock`はオフライン検証用の決定論的テストドライバーで、AIモデルではありません。
+`balanced`は2つのSkill（`harness-init`・`work`）と4つのAgent定義をホストごとに生成します。
 
-## 実装した主な領域
+### 3. 普段の開発
 
-| 領域 | 概要 |
+対象プロジェクトでAI CLIを起動し、`/work`に作業を依頼します。
+
+```text
+/work タイムアウト値の入力チェックを追加して、関連テストを実行して
+```
+
+### 4. 計画・テスト付きで実行
+
+以下はCodexの例です。`--host`を`claude`や`opencode`に変更できます。
+
+```bash
+cd /path/to/project
+
+# 作業計画を生成
+seh work plan --root . --goal 'タイムアウト値の入力チェックを追加' \
+  --host codex --scope 'src/**,tests/**' --execute --out task.json
+
+# task.jsonを確認し、checksにプロジェクトのテストコマンドを設定して実行
+seh work run --root . --task task.json --host codex --trust-cli
+
+# 出力されたrun_idで結果を確認
+seh work status <run-id> --root .
+
+# 計画・結果を確認後、再実行して成功した変更を適用
+seh work run --root . --task task.json --host codex --trust-cli --apply --approve
+```
+
+`--scope`とテストはプロジェクトに合わせて変更してください。[Task JSON例](examples/multihost/task.json)ではホスト・モデル・テスト・依存関係を指定できます。
+
+`--trust-cli`は外部CLIの実行を許可します。作業用コピーはOSサンドボックスではありません。実行条件は[セキュリティ](docs/SECURITY.md)を参照してください。
+
+### 5. AI・APIなしで試す
+
+このリポジトリのディレクトリで実行します。
+
+```bash
+# サンプルを一時ディレクトリへコピー
+DEMO_ROOT=$(mktemp -d)
+cp -R examples/demo_project/. "$DEMO_ROOT/"
+
+python3 run_seh.py init --root "$DEMO_ROOT" --apply
+python3 run_seh.py work run --root "$DEMO_ROOT" \
+  --task "$DEMO_ROOT/work-task.json" --host mock --apply --approve
+python3 run_seh.py eval run --root "$DEMO_ROOT" \
+  --suite "$DEMO_ROOT/eval-suite.json" --host mock
+cat "$DEMO_ROOT/result.txt"
+```
+
+`mock`はAIモデルではなく、オフライン動作確認用です。
+
+### その他の操作
+
+| 操作 | コマンド |
 |---|---|
-| 導入・同期・移行 | 検出、差分プレビュー、所有権、スナップショット、復元、不要Skillの安全な削除 |
-| ホスト対応 | Claude/Codex/OpenCode/AGYのSkill・Agent・Instructions生成、CLI Runnerアダプター |
-| スキル整理 | 初期構成2 Skill・4 Agent。新しいSkillをむやみに追加しない |
-| 開発 | TaskSpecのDAG、依存関係、並列実行、テスト、回数制限付き修正、失敗証拠、明示的な適用 |
-| 品質 | Eval First、4種類のFixture、比較、出力契約、Skill/PromptのLint・承認付き昇格 |
-| 自己改善 | 観測→提案→独立評価→承認→昇格→ロールバック、Evidence付きLesson |
-| Harness² | 任意のLite比較、およびOpt-in Fullの候補生成・Probe・Compose。通常タスクでは実行しない |
-| Tool/Provider | JSON入力検証付きツール、FileMemory、Engram接続アダプター、CodeGraph/Graphify/ソース検索切替 |
+| 設定の差分確認 → 同期 | `seh sync --root .` → `seh sync --root . --apply` |
+| メモを保存・検索 | `seh memory add '認証の有効期限を先に確認' --root .` / `seh memory search '認証' --root .` |
+| コードを検索 | `seh code search 'timeout' --root .` |
+| Skillを検査 | `seh author lint --root .` |
+| 最適化の状態を確認 | `seh optimize status --root .` |
+| CLI互換性情報を更新 | `seh hosts refresh` |
+| モデル情報を更新 | `seh models refresh --host opencode` |
+| 詳しい引数を確認 | `seh --help` / `seh work run --help` |
 
-## 動作確認と残る限界
-
-配布前に自動テストと、初期化・DAG実行・Evalの実動デモを実行しています。**実ホストでのAIモデルの作業成功率や起動時間は未検証**です。実ホストCLI・MCP/CodeGraph/Graphify・`gh`の実環境接続テストは、各バイナリ・認証情報がないためできていません。CLIから実行するコードはOSの安全なサンドボックスで隔離されたわけではありません。オプトインの`--trust-cli`と`--trusted-local`はリスクを理解した場合だけ使用してください。金額の強制上限を保証できない場合、`require_metered`設定は実行を拒否します。
-
-不確定な2件目X投稿のオプション機能は、内容が確定できていないため推測で実装していません。
-
-詳細は [README.md](README.md)、[機能一覧](docs/IMPLEMENTATION_MATRIX.md)、[制約と互換性](docs/COMPATIBILITY.md)、[セキュリティ](docs/SECURITY.md)、[テスト](docs/TESTING.md) を参照してください。
-
-## v1.4.1: Task単位のHost/Model選択と更新機構
-
-- **Task/NodeでHost・Modelを指定**: `goal`・`instructions_file`・`nodes[].prompt`・`host`・`model`・`models`、DAG並列、条件付きFallback、Compare。
-- **CLIのバージョン差分検出**: `seh hosts inspect` / `seh hosts refresh`。実行ファイル変更で自動再検査。未知の互換性差分は安全に停止。
-- **Model一覧更新**: `seh models list`（TTLで自動更新）/ `seh models refresh`。`model=auto`はHostの最新デフォルトに委譲します。
-- **自動化の許可モード**: `--autonomy auto`が通常既定。危険な`--yolo`/`--dangerously-skip-permissions`は外部Sandbox下での明示的な使用に限定。
-- **更新コマンド**: v1.4.1以降は`harness update --check` / `harness update` / `harness update --yes --sync --root PROJECT`。公開リリースと検証可能なWheelが前提。
-- **Python以外のコードも対象**: TypeScript、Go、Rust、C#、Swift、Javaなどのプロジェクト検出と検証コマンド候補を拡充。
-
-詳細: [Host/Task/Model/更新の完全仕様](docs/HOST_TASK_MODEL_UPDATES.md) / [Task JSON例](examples/multihost/task.json)。
-
-## 最新CLI・ハーネスを更新する場合
-
-```bash
-# 互換性情報を再取得（通常のTaskではモデル一覧を更新しない）
-harness hosts refresh
-harness models refresh --host opencode
-
-# 現在公開されている最新版を確認
-harness update --check
-
-# 公開済みの検証可能なwheelがある場合のみ、確認付きで更新
-harness update
-
-# 更新後にプロジェクトの管理対象ファイルも再同期
-harness update --yes --sync --root /path/to/project
-```
-
-- 外部のClaude/Codex/OpenCode自体はこれらのコマンドで更新しません。各ベンダーの正規アップデーターで更新してください。更新後、実行ファイルの変化を検知してCLI引数を再評価します。
-- 未知の引数変更に対しては動作を推測せず停止します。対応版を公開後、`harness update`で導入してください。
-- `harness update`はこの独立版のホイールが `jumtra/self-evolve-harness` のGitHub Releasesへ正しいタグとダイジェスト付きで公開されて初めて利用できます。**現状、リモート更新の成功は未検証**です。
-- 低摩擦の既定値は`--autonomy auto`です。`--yolo` / `--dangerously-skip-permissions` 相当を使う場合は、外部で隔離した環境に限定し、`--autonomy bypass --attest-external-sandbox --trust-cli` を指定してください。
-- 既存プロジェクト内のユーザー管理ファイルは自動で上書きせず、差分・バックアップ・ロールバックを確認してください。
+詳細：[機能一覧](docs/IMPLEMENTATION_MATRIX.md) · [ホスト・モデル・更新](docs/HOST_TASK_MODEL_UPDATES.md) · [互換性・制約](docs/COMPATIBILITY.md)
