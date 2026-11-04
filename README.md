@@ -2,9 +2,9 @@
 
 # self-evolve-harness
 
-**Shared workflows. Verified changes. Better AI coding.**
+**One request. Changes you can verify.**
 
-A development workflow CLI for Claude Code, Codex, and OpenCode
+Connect Claude Code, Codex, and OpenCode with planning, task routing, tests, and approval.
 
 **English** · [日本語](README.ja.md)
 
@@ -16,18 +16,19 @@ A development workflow CLI for Claude Code, Codex, and OpenCode
 
 <picture>
   <source media="(max-width: 600px)" srcset="docs/assets/workflow-en-mobile.svg">
-  <img src="docs/assets/workflow-en.svg" alt="Three workflows after setup: everyday development, work with tests, and workflow improvement" width="1080">
+  <img src="docs/assets/workflow-en.svg" alt="Request → Plan → Parallel UI work in Codex and API work in OpenCode → Tests → Approve and apply. Use /work for everyday tasks; evaluate and compare workflow improvements before adoption." width="1120">
 </picture>
 
-| Goal | Capability |
-|---|---|
-| Set up your AI tools | Generate and sync host-specific Skills, Agent definitions, and instructions |
-| Split up work | Choose hosts and models per task; run independent tasks in parallel |
-| Verify changes | Run tests, bounded repairs, status checks, and explicit workspace apply |
-| Improve workflows | Evaluate and compare Skills/prompts, approve promotion, and roll back |
-| Reuse knowledge | Save and search local memory; search project code |
+**Use `/work` for a quick fix. Add a plan and tests for larger changes. Evaluate workflow improvements before adopting them.**
 
-Everyday work adds no optimization calls. Improvement and optimization run only when requested (optimization is OFF by default). AGY supports configuration generation only.
+| When you want to… | What you can do |
+|---|---|
+| Fix something in your usual AI CLI | Implement and test with `/work`, with no extra optimization calls |
+| Split work across the UI and API | Select hosts and models per task; run independent tasks in parallel |
+| Verify changes before applying them | Implement, test, and run bounded repairs in a working copy; explicitly approve applying changes |
+| Reuse what worked | Save and search knowledge; evaluate and compare Skill/prompt changes before approved promotion |
+
+<sub>The diagram illustrates routing defined in a task specification. Optimization is OFF by default. AGY supports configuration generation only.</sub>
 
 ## Usage
 
