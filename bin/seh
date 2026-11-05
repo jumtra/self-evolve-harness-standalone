@@ -1,4 +1,13 @@
 #!/bin/sh
 set -eu
-here=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+target="$0"
+while [ -L "$target" ]; do
+  dir=$(dirname -- "$target")
+  target=$(readlink "$target")
+  case "$target" in
+    /*) ;;
+    *) target="$dir/$target" ;;
+  esac
+done
+here=$(CDPATH= cd -- "$(dirname -- "$target")/.." && pwd)
 exec python3 "$here/run_seh.py" "$@"

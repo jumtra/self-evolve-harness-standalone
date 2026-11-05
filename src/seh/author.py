@@ -8,6 +8,19 @@ from .evals import load_suite, run_eval, compare
 
 SKILL_NAME=re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
+def _skill_body(text:str)->str:
+    if text.startswith("---\n") and "\n---\n" in text[4:]:
+        return text[4:].split("\n---\n",1)[1].strip()
+    return text.strip()
+
+
+def _has_frontmatter_key(text:str, key:str)->bool:
+    if not (text.startswith("---\n") and "\n---\n" in text[4:]):
+        return False
+    front=text[4:].split("\n---\n",1)[0]
+    return any(line.split(":",1)[0].strip()==key for line in front.splitlines() if ":" in line)
+
+
 def lint_skill(path:Path)->list[str]:
     text=path.read_text(encoding="utf8")
     issues=[]
@@ -19,7 +32,9 @@ def lint_skill(path:Path)->list[str]:
         if ":" not in line:issues.append("malformed frontmatter line");continue
         key,val=line.split(":",1)
         if key in keys:issues.append(f"duplicate key {key}")
-        keys[key]=val.strip().strip('"')
+        keys[key]=val.strip().strip('"').strip("'")
+    if "name" not in keys and path.parent.parent.name=="skills" and path.parent.parent.parent.name=="spec":
+        keys["name"]=path.parent.name
     if not SKILL_NAME.fullmatch(keys.get("name","")):issues.append("invalid name")
     if not 10 <= len(keys.get("description",""))<=1024:issues.append("missing or imprecise description")
     if keys.get("name")!=path.parent.name:issues.append("folder/name mismatch")
@@ -30,7 +45,9 @@ def lint_skill(path:Path)->list[str]:
 
 def lint(root:Path)->dict:
     seen={};issues=[];files=[]
-    for parent in (root/".harness"/"spec"/"skills", root/".claude"/"skills", root/".agents"/"skills"):
+    spec_dir=root/".harness"/"spec"/"skills"
+    v2_spec=spec_dir.is_dir() and any(not _has_frontmatter_key(p.read_text(encoding="utf8"),"name") for p in spec_dir.glob("*/SKILL.md"))
+    for parent in (spec_dir, root/".claude"/"skills", root/".agents"/"skills"):
         if not parent.is_dir():continue
         for path in parent.glob("*/SKILL.md"):
             rel=path.relative_to(root).as_posix()
@@ -38,8 +55,9 @@ def lint(root:Path)->dict:
             files.append(rel)
             issues.extend({"path":rel,"problem":x} for x in errors)
             name=path.parent.name
-            if name in seen and path.read_bytes()!=seen[name][1]:issues.append({"path":rel,"problem":f"conflicts with {seen[name][0]}"})
-            seen[name]=(rel,path.read_bytes())
+            sig=_skill_body(path.read_text(encoding="utf8")).encode("utf8") if v2_spec else path.read_bytes()
+            if name in seen and sig!=seen[name][1]:issues.append({"path":rel,"problem":f"conflicts with {seen[name][0]}"})
+            seen[name]=(rel,sig)
     return {"status":"PASS" if not issues else "FAIL","files":files,"issues":issues}
 
 

@@ -16,7 +16,7 @@ The harness is not a general-purpose OS sandbox. A copied folder or worktree pro
 
 For important repositories, use an external sandbox or disposable VM with no production credentials, fixed network policies, read-only source snapshots and least-privilege tokens. Enable GitHub branch protection / required checks separately; local CLI code cannot enforce server-side protections. Do not check `.harness/state`, logs, index artifacts or secrets into Git.
 
-## Vendor CLI drift and self-update hardening (v1.4.1)
+## Vendor CLI drift and self-update hardening
 
 - Flag compatibility is probed by executing only vendor `--version` / `--help` commands and cached by executable fingerprint and TTL. No downloaded help text is executed as a script, and missing required flags fail closed.
 - External OS-level isolation is NOT inferred from temp directories or Git worktrees. Raw permission bypass is an explicitly attested risk, not the normal default.

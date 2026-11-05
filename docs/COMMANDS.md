@@ -25,7 +25,7 @@ Run `seh <command> --help` for the authoritative current flags. All commands sup
 
 Status and output fields are JSON. Nonzero statuses distinguish validation, missing dependency, safety/policy refusal and failed validation. Paths in examples are relative to where the command is run unless an explicit absolute path is used. In `optimize`, all active experiments require a separately configured mode; normal development never starts optimization implicitly.
 
-## Task routing and host / model compatibility (v1.4.1)
+## Task routing and host / model compatibility
 
 ```bash
 seh hosts inspect
@@ -38,4 +38,4 @@ harness update --check
 harness update --yes --sync --root /your/project
 ```
 
-For Task JSON (including per-node models and instruction files), failover/compare, automatic host flag probing, model catalog freshness, and release validation, see [HOST_TASK_MODEL_UPDATES.md](HOST_TASK_MODEL_UPDATES.md). `harness` becomes a console command after installing v1.4.1; the zip also provides `./bin/harness`.
+For Task JSON (including per-node models and instruction files), failover/compare, automatic host flag probing, model catalog freshness, and release validation, see [HOST_TASK_MODEL_UPDATES.md](HOST_TASK_MODEL_UPDATES.md). `harness` and `seh` are provided as console commands (`make install` or `./bin/harness`).

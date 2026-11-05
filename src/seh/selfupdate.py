@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 from urllib.parse import urlparse
@@ -20,13 +21,24 @@ from urllib.request import Request, urlopen
 import zipfile
 from .util import SEHError
 
-REPO = "jumtra/self-evolve-harness"
+REPO = "jumtra/self-evolve-harness-standalone"
 API = f"https://api.github.com/repos/{REPO}/releases/latest"
 PACKAGE = "self-evolve-harness-standalone"
 MAX_DOWNLOAD = 30*1024*1024
 DIGEST_RE = re.compile(r"^sha256:([0-9a-f]{64})$")
 VERS_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 ALLOWED_DOWNLOAD_HOSTS={"github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com"}
+SYSTEM_CA_BUNDLES=("/etc/ssl/cert.pem", "/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt")
+
+
+def _ssl_context() -> ssl.SSLContext:
+    ctx=ssl.create_default_context()
+    for candidate in SYSTEM_CA_BUNDLES:
+        if Path(candidate).is_file():
+            try:ctx.load_verify_locations(cafile=candidate)
+            except ssl.SSLError:continue
+            break
+    return ctx
 
 
 def _version_tuple(v: str) -> tuple[int,int,int]:
@@ -41,7 +53,7 @@ def _read_url(url: str, limit: int, timeout: int=12) -> bytes:
         raise SEHError("UNTRUSTED_UPDATE_URL",f"Untrusted release domain: {parsed.hostname}",3)
     req=Request(url,headers={"User-Agent":"self-evolve-harness-updater","Accept":"application/vnd.github+json"})
     try:
-        with urlopen(req,timeout=timeout) as response:
+        with urlopen(req,timeout=timeout,context=_ssl_context()) as response:
             if response.geturl()!=url:
                 final=urlparse(response.geturl())
                 if final.scheme!="https" or final.hostname not in ALLOWED_DOWNLOAD_HOSTS:

@@ -1,4 +1,4 @@
-# Implementation and validation matrix (standalone 1.4)
+# Implementation and validation matrix
 
 Symbols: **offline tested** means a deterministic test covers the code path. **Adapter only** means the external service is absent in this build environment and must be validated separately. **Explicitly unavailable** means a safety/terms boundary prevents invoking it.
 
@@ -27,7 +27,7 @@ Symbols: **offline tested** means a deterministic test covers the code path. **A
 The phrase "standalone" means the project itself is installable and its core offline workflows run without importing the original harness or agent SDK. It does **not** imply that it bundles proprietary AI models, paid vendor CLIs, CodeGraph, Graphify or Engram.
 
 
-## v1.4.1 additions
+## Multi-host routing and updater additions
 
 | Feature | Implementation | Offline verification | Real vendor E2E |
 |---|---|---|---|

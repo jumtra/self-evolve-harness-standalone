@@ -14,12 +14,17 @@ from .util import read_json, write_json, SEHError
 CACHE_TTL_SECONDS = 24 * 3600
 CATALOG_PATH = Path(".harness/state/model_catalog.json")
 OPEN_CODE_ID = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_./:@+\-]+$")
+AGY_MODEL_LINE = re.compile(r"^([a-z0-9][a-z0-9._-]+)\t+\S.*$")
 HOSTS = ("claude", "codex", "opencode", "agy")
 
 
 def parse_opencode_models(output: str) -> list[str]:
     # Deliberately accept only explicit provider/model identifiers.
     return sorted({line.strip() for line in output.splitlines() if OPEN_CODE_ID.fullmatch(line.strip())})
+
+
+def parse_agy_models(output: str) -> list[str]:
+    return sorted({m.group(1) for line in output.splitlines() if (m := AGY_MODEL_LINE.fullmatch(line.strip()))})
 
 
 def refresh_catalog(root: Path, *, hosts: list[str] | None = None, timeout: int = 12) -> dict:
@@ -50,7 +55,7 @@ def refresh_catalog(root: Path, *, hosts: list[str] | None = None, timeout: int 
                 output=completed.stdout[:24000]
                 # Antigravity's models command may be rendered as an interactive
                 # table. Keep it as advisory text; never guess or pin model IDs.
-                cache["hosts"]["agy"]={"source":"agy models","models":[],"raw_listing":output,
+                cache["hosts"]["agy"]={"source":"agy models","models":parse_agy_models(output),"raw_listing":output,
                     "availability":"configuration-only; managed execution disabled", "fetched_at":now,
                     "verified": completed.returncode==0}
             except (OSError,subprocess.TimeoutExpired):

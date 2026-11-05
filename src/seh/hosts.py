@@ -75,8 +75,11 @@ def build_command(host: str, prompt: str, *, model: str | None = None, read_only
         else:
             require_flags(info,"--sandbox")
             argv += ["--sandbox","read-only" if read_only else "workspace-write"]
-            if not read_only and autonomy=="auto" and "--ask-for-approval" in info["flags"]:
-                argv += ["--ask-for-approval","never"]
+            if not read_only and autonomy=="auto":
+                if "--ask-for-approval" in info["flags"]:
+                    argv += ["--ask-for-approval","never"]
+                elif "--approve-for-me" in info["flags"]:
+                    argv.append("--approve-for-me")
         return argv + (["-"] if use_stdin else [prompt])
     if host=="opencode":
         require_flags(info,"--format")

@@ -37,13 +37,22 @@ Claude Code・Codex・OpenCodeを、計画・分担・テスト・承認でつ�
 Python **3.11以上**、macOS / Linuxが必要です。このリポジトリのディレクトリで実行します。
 
 ```bash
+make install
+harness --version
+```
+
+`~/.local/bin/harness`（未競合時は`~/.local/bin/seh`も）にリンクを作成し、仮想環境の有効化なしでどこからでも`harness`コマンドを実行できるようにします。
+
+Pythonパッケージとして仮想環境にインストールする場合は以下を実行します。
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
-seh --version
+harness --version
 ```
 
-インストールせず試す場合は、`seh`の代わりに`python3 run_seh.py`を使えます。実際のAI作業には、利用するClaude Code / Codex / OpenCode CLIのインストールと認証が別途必要です。
+インストールせず試す場合は、`harness` / `seh`の代わりに`python3 run_seh.py`を使えます。実際のAI作業には、利用するClaude Code / Codex / OpenCode CLIのインストールと認証が別途必要です。
 
 ### 2. プロジェクトに導入
 

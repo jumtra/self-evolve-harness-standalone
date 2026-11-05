@@ -37,13 +37,22 @@ Connect Claude Code, Codex, and OpenCode with planning, task routing, tests, and
 Requires Python **3.11+** on macOS / Linux. Run from this repository's directory.
 
 ```bash
+make install
+harness --version
+```
+
+This links `~/.local/bin/harness` (and `~/.local/bin/seh` if not already present) so you can run `harness` from any directory without activating a virtual environment.
+
+To install as an editable Python package in a virtual environment instead:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
-seh --version
+harness --version
 ```
 
-To try without installing, replace `seh` with `python3 run_seh.py`. Real AI work also requires an installed and authenticated Claude Code, Codex, or OpenCode CLI.
+To try without installing, replace `harness` / `seh` with `python3 run_seh.py`. Real AI work also requires an installed and authenticated Claude Code, Codex, or OpenCode CLI.
 
 ### 2. Set up a project
 

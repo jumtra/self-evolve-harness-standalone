@@ -1,4 +1,13 @@
-.PHONY: test smoke bench
+.PHONY: test smoke bench install
+
+PREFIX ?= $(HOME)/.local
+BINDIR ?= $(PREFIX)/bin
+
+install:
+	@mkdir -p "$(BINDIR)"
+	@ln -sf "$(CURDIR)/bin/harness" "$(BINDIR)/harness"
+	@test -e "$(BINDIR)/seh" || ln -sf "$(CURDIR)/bin/seh" "$(BINDIR)/seh"
+	@echo "Installed: $(BINDIR)/harness"
 
 test:
 	PYTHONPATH=src python3 -m pytest -q

@@ -1,6 +1,6 @@
 # Host / Task / Model / CLI compatibility / updater: implementation contract
 
-**Package:** `self-evolve-harness-standalone 1.4.1`. The code is a standalone implementation, not an in-place patch of the upstream GitHub checkout.
+**Package:** `self-evolve-harness-standalone`. The code is a standalone implementation, not an in-place patch of the upstream GitHub checkout.
 
 ## 1. The host is never locked during harness initialization
 
@@ -82,7 +82,7 @@ To keep model choice current without unexpected behavior changes, use `"model": 
 
 ## 7. Harness update and project migration
 
-`harness` and `seh` are equivalent installed console scripts from 1.4.1 onward:
+`harness` and `seh` are equivalent installed console scripts:
 
 ```bash
 harness update --check       # Query latest stable release; no files changed
@@ -91,26 +91,19 @@ harness update --yes         # Non-interactive opt-in installation
 harness update --yes --sync --root /your/project
 ```
 
-`harness update` queries the **pinned** publisher repository `jumtra/self-evolve-harness` GitHub Releases API. Installation is allowed only when a newer stable release includes a matching pure-Python wheel and a GitHub SHA-256 asset digest, both verified. The process does not invoke a shell or install additional dependencies, and refuses to mutate system Python (use a venv/pipx). **The repository must publish a verified wheel for remote updates to function**; the provided ZIP is not such a published release. HTTPS, release validation, wheel METADATA and digest checks all fail closed. The digest establishes integrity relative to GitHub's release metadata, not a separate developer signature.
+`harness update` queries the **pinned** publisher repository `jumtra/self-evolve-harness-standalone` GitHub Releases API. Installation is allowed only when a newer stable release includes a matching pure-Python wheel and a GitHub SHA-256 asset digest, both verified. The process does not invoke a shell or install additional dependencies, and refuses to mutate system Python (use a venv/pipx). **The repository must publish a verified wheel for remote updates to function**. HTTPS, release validation, wheel METADATA and digest checks all fail closed. The digest establishes integrity relative to GitHub's release metadata, not a separate developer signature.
 
 The installed package itself is upgraded; existing `.harness/config.toml`, project code and memory are retained. `--sync` runs the newly installed `seh sync --apply` against managed host files after update. Owned-file conflicts still cause an error rather than overwriting a user edit. Take a backup/commit before switching to a new version.
 
-**One-time upgrade from original 1.4.0:** That release does not contain `harness update`; install the new bundled wheel once in the same virtual environment:
+For offline verified upgrades from a local wheel:
 
 ```bash
-python -m pip install --no-index --no-deps --upgrade dist/self_evolve_harness_standalone-1.4.1-py3-none-any.whl
-harness --version
-```
-
-For offline verified upgrades after 1.4.1:
-
-```bash
-shasum -a 256 dist/self_evolve_harness_standalone-1.4.2-py3-none-any.whl
-harness update --wheel dist/self_evolve_harness_standalone-1.4.2-py3-none-any.whl \
+shasum -a 256 dist/self_evolve_harness_standalone-0.0.2-py3-none-any.whl
+harness update --wheel dist/self_evolve_harness_standalone-0.0.2-py3-none-any.whl \
   --sha256 YOUR_VERIFIED_64_HEX_DIGEST --yes
 ```
 
-The above 1.4.2 filename is a **future example**, not a currently released file. Current self-update does not guarantee automatic rollback if pip fails after partial installation: maintain your original wheel/virtualenv or reinstall the previous release. Further hardening can use versioned isolated environments and an atomic launcher switch.
+Current self-update does not guarantee automatic rollback if pip fails after partial installation: maintain your original wheel/virtualenv or reinstall the previous release. Further hardening can use versioned isolated environments and an atomic launcher switch.
 
 ## 8. Project language is independent of agent host
 

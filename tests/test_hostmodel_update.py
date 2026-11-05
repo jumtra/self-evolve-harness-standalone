@@ -126,9 +126,9 @@ def fake_wheel(version: str) -> bytes:
 def test_selfupdate_digest_and_version(monkeypatch,tmp_path):
     wheel=fake_wheel('1.4.2')
     digest=hashlib.sha256(wheel).hexdigest()
-    rel={'tag_name':'v1.4.2','draft':False,'prerelease':False,'html_url':'https://github.com/jumtra/self-evolve-harness/releases/tag/v1.4.2',
+    rel={'tag_name':'v1.4.2','draft':False,'prerelease':False,'html_url':f'https://github.com/{selfupdate.REPO}/releases/tag/v1.4.2',
          'assets':[{'name':'self_evolve_harness_standalone-1.4.2-py3-none-any.whl',
-                    'browser_download_url':'https://github.com/jumtra/self-evolve-harness/releases/download/v1.4.2/x.whl',
+                    'browser_download_url':f'https://github.com/{selfupdate.REPO}/releases/download/v1.4.2/x.whl',
                     'digest':'sha256:'+digest}]}
     def download(url,limit,timeout=12):return json.dumps(rel).encode() if url==selfupdate.API else wheel
     monkeypatch.setattr(selfupdate,'_read_url',download)
@@ -192,3 +192,106 @@ def test_host_models_do_not_refresh_on_task(monkeypatch,tmp_path,project):
     spec={'defaults':{'model':'auto'},'nodes':[{'id':'noop','kind':'agent','prompt':'[[MOCK:hello]]',
           'write_allowlist':['result.txt']}]}
     assert execute(project,spec)['final_status']=='PASSED'
+
+
+def test_bin_wrappers_work_via_symlink(tmp_path):
+    import subprocess
+    repo_root=Path(__file__).resolve().parent.parent
+    bin_dir=tmp_path/'local'/'bin'
+    bin_dir.mkdir(parents=True)
+    for name in ('harness','seh'):
+        link=bin_dir/name
+        link.symlink_to(repo_root/'bin'/name)
+        proc=subprocess.run([str(link),'--version'],capture_output=True,text=True,timeout=10,check=False)
+        assert proc.returncode==0, proc.stderr
+        assert 'seh ' in proc.stdout
+
+
+def test_selfupdate_ssl_context_falls_back_to_system_ca(monkeypatch,tmp_path):
+    import ssl
+    fake_ca=tmp_path/'cert.pem'
+    fake_ca.write_text('-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----\n')
+    loaded=[]
+    class DummyCtx:
+        def load_verify_locations(self,cafile=None):
+            loaded.append(cafile)
+    monkeypatch.setattr(ssl,'create_default_context',lambda:DummyCtx())
+    monkeypatch.setattr(ssl,'get_default_verify_paths',lambda:type('P',(),{'cafile':None,'capath':None})())
+    monkeypatch.setattr(selfupdate,'SYSTEM_CA_BUNDLES',(str(fake_ca),))
+    selfupdate._ssl_context()
+    assert loaded==[str(fake_ca)]
+
+
+def test_make_install_creates_symlinks_without_clobbering_existing_seh(tmp_path):
+    import subprocess
+    repo_root=Path(__file__).resolve().parent.parent
+    bin_dir=tmp_path/'bin'
+    bin_dir.mkdir()
+    existing_seh=bin_dir/'seh'
+    existing_seh.write_text('#!/bin/sh\necho existing\n')
+    existing_seh.chmod(0o755)
+    proc=subprocess.run(['make','install',f'BINDIR={bin_dir}'],cwd=repo_root,capture_output=True,text=True,timeout=10,check=False)
+    assert proc.returncode==0, proc.stderr
+    assert (bin_dir/'harness').is_symlink()
+    assert not existing_seh.is_symlink() and existing_seh.read_text()=='#!/bin/sh\necho existing\n'
+    ver=subprocess.run([str(bin_dir/'harness'),'--version'],capture_output=True,text=True,timeout=10,check=False)
+    assert ver.returncode==0 and 'seh ' in ver.stdout
+    clean_bin=tmp_path/'clean_bin'
+    proc2=subprocess.run(['make','install',f'BINDIR={clean_bin}'],cwd=repo_root,capture_output=True,text=True,timeout=10,check=False)
+    assert proc2.returncode==0, proc2.stderr
+    assert (clean_bin/'harness').is_symlink() and (clean_bin/'seh').is_symlink()
+
+
+def test_load_config_accepts_v2_nested_config(tmp_path):
+    from seh.config import load_config
+    h=tmp_path/'.harness'
+    h.mkdir()
+    (h/'config.toml').write_text('''schema_version = "2.0"
+profile = "standard"
+
+[hosts]
+enabled = ["claude", "codex", "opencode", "antigravity"]
+
+[code_intelligence]
+provider = "none"
+
+[memory]
+provider = "files"
+
+[runtime]
+default_mode = "native"
+max_concurrency = 2
+max_fix_iterations = 3
+timeout_sec = 300
+
+[sdk]
+mode = "auto"
+
+[authoring]
+require_eval = true
+
+[evaluation]
+trials = 1
+
+[evolution]
+auto_promote = false
+''')
+    cfg=load_config(tmp_path)
+    assert cfg.profile=='balanced'
+    assert cfg.hosts==['claude','codex','opencode','agy']
+    assert cfg.code_intelligence=='none'
+    assert cfg.memory=='file'
+
+
+def test_codex_approve_for_me_and_agy_models_parsing(monkeypatch,tmp_path):
+    paths=fake_hosts(monkeypatch,tmp_path)
+    script=paths['codex']
+    script.write_text(script.read_text().replace('--ask-for-approval','--approve-for-me'))
+    cmd=build_command('codex','hello',read_only=False,autonomy='auto')
+    assert '--approve-for-me' in cmd
+    from seh.models import parse_agy_models
+    parsed=parse_agy_models('gemini-4-argon-medium\tGemini 4 Argon (Medium)\nclaude-opus-5-5-high\tClaude Opus 5.5 (High)\n')
+    assert parsed==['claude-opus-5-5-high','gemini-4-argon-medium']
+
+
+
