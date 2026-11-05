@@ -14,6 +14,7 @@ Run `seh <command> --help` for the authoritative current flags. All commands sup
 | `author` | lint, plan, candidate, gate, promote, rollback | invalid skill, missing evidence, approval |
 | `evolve` | observe, propose, lesson | missing evidence/observation |
 | `optimize` | status, doctor, configure, plan, propose, run, report, promote, full, disable | disabled, isolation, budget, negative comparison |
+| `session` | checkpoint, status, resume | missing checkpoint, invalid task ID |
 | `memory` | add, search, list, delete | unsupported MCP method |
 | `code` | doctor, search, symbol, index | missing provider, unsupported feature |
 | `tool` | list, call | invalid inputs or command permission |

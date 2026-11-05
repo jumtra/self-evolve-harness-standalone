@@ -14,6 +14,7 @@ from .policy import check_write
 from .runner import run_agent, run_checked_command
 from .util import SEHError, ident, now, read_json, write_json, snapshot, simple_copy_tree, filehash, safe_path, exclusive_lock
 from .task_routing import validate_task_context, resolve_routes, build_task_prompt
+from .session import managed_checkpoint, load_checkpoint, completion_message, handoff_relpath
 
 KINDS={"worker","agent","code","gate","splitter"}
 
@@ -54,7 +55,7 @@ def _changed(before:dict[str,str],after:dict[str,str])->list[str]:
 
 
 def _run_node(node:dict, spec:dict, staging:Path, default_host:str, cfg, timeout:int, *, feedback:str="", trust_cli:bool=False,
-              autonomy: str="auto", isolated:bool=False)->dict:
+              autonomy: str="auto", isolated:bool=False, handoff:dict|None=None)->dict:
     """A task node sees a private copy; fallback never reuses failed edits.
 
     Compare runs have their own isolated copies and never merge any candidate.
@@ -79,7 +80,7 @@ def _run_node(node:dict, spec:dict, staging:Path, default_host:str, cfg, timeout
             else:
                 if chosen_host!="mock" and not trust_cli:
                     raise SEHError("UNTRUSTED_AGENT_EXEC", "Real CLI agents require --trust-cli",3)
-                prompt=build_task_prompt(spec,node,work,feedback=feedback)
+                prompt=build_task_prompt(spec,node,work,feedback=feedback,handoff=handoff)
                 try:
                     r=run_agent(chosen_host,prompt,work,timeout,model=chosen_model,read_only=kind=="splitter",
                                 autonomy=autonomy,isolated=isolated)
@@ -166,13 +167,20 @@ def execute(root:Path, spec:dict, *, host:str="mock",apply:bool=False,approve:bo
             record=read_json(record_path)
             if not record:raise SEHError("RUN_NOT_FOUND",run_id,3)
             if record["spec"]!=spec:raise SEHError("RESUME_MISMATCH","Task specification changed")
-            if record.get("final_status")=="PASSED": return {k:v for k,v in record.items() if k!="spec"}
+            # A verified, unapplied run may be approved and applied on resume
+            # without re-running the entire DAG. An already-applied run is inert.
+            if record.get("final_status")=="PASSED" and (not apply or record.get("applied")):
+                return {**{k:v for k,v in record.items() if k!="spec"}, "message":completion_message(record),
+                        "checkpoint_path":handoff_relpath(run_id)}
         else:
             if record_path.exists():raise SEHError("RUN_EXISTS",run_id)
             staging.mkdir(parents=True)
             simple_copy_tree(root,staging)
             record={"run_id":run_id,"created_at":now(),"spec":spec,"host":host,"node_status":{},"results":{},"base_snapshot":snapshot(root),"final_status":"RUNNING","applied":False}
             write_json(record_path,record)
+        # A resume is a fresh host invocation; carry only the most recent
+        # durable, bounded summary, not the previous session transcript.
+        handoff = load_checkpoint(root, run_id) if resume else None
         start=time.monotonic()
         pending={n["id"]:n for n in nodes if record["node_status"].get(n["id"])!="PASSED"}
         failed=[]
@@ -186,7 +194,7 @@ def execute(root:Path, spec:dict, *, host:str="mock",apply:bool=False,approve:bo
                 record["final_status"]="BLOCKED_DEPENDENCY";break
             wave=ready[:cfg.max_parallel]
             with ThreadPoolExecutor(max_workers=len(wave)) as pool:
-                results=list(pool.map(lambda n:_run_node(n,spec,staging,host,cfg,min(cfg.timeout_seconds,int(n.get("timeout_seconds",cfg.timeout_seconds))),trust_cli=trust_cli,autonomy=autonomy,isolated=isolated),wave))
+                results=list(pool.map(lambda n:_run_node(n,spec,staging,host,cfg,min(cfg.timeout_seconds,int(n.get("timeout_seconds",cfg.timeout_seconds))),trust_cli=trust_cli,autonomy=autonomy,isolated=isolated,handoff=handoff),wave))
             # Atomic wave merge: two nodes may not write the same relative path.
             edit_owners={}
             for result in results:
@@ -209,6 +217,9 @@ def execute(root:Path, spec:dict, *, host:str="mock",apply:bool=False,approve:bo
                             atomic_bytes(path,data)
                 pending.pop(identifier)
             write_json(record_path,record)
+            # Exactly one tiny file overwrite per completed wave. No LLM or
+            # per-tool hook, and no transcript or tool logs in long-term memory.
+            managed_checkpoint(root,record,state="BLOCKED" if failed else "IN_PROGRESS")
             if failed:
                 record["final_status"]="FAILED";break
         if not pending and not failed:
@@ -240,14 +251,22 @@ def execute(root:Path, spec:dict, *, host:str="mock",apply:bool=False,approve:bo
                     else:atomic_bytes(dst,b)
                 raise
         write_json(record_path,record)
-        return {k:v for k,v in record.items() if k!="spec"}
+        milestone=("COMPLETED" if record["final_status"]=="PASSED" and record["applied"]
+                   else "VERIFIED" if record["final_status"] in ("PASSED","COMPARISON_READY")
+                   else "BLOCKED")
+        handoff_record=managed_checkpoint(root,record,state=milestone)
+        result={k:v for k,v in record.items() if k!="spec"}
+        result["message"]=completion_message(record)
+        result["checkpoint_path"]=handoff_record["path"]
+        return result
 
 
 def status(root:Path,run_id:str)->dict:
     if not run_id.replace("-","").replace("_","").isalnum():raise SEHError("INVALID_ID",run_id,2)
     data=read_json(root/".harness"/"state"/"runs"/run_id/"record.json")
     if not data:raise SEHError("RUN_NOT_FOUND",run_id,3)
-    return {k:v for k,v in data.items() if k!="spec"}
+    return {**{k:v for k,v in data.items() if k!="spec"},
+            "message":completion_message(data), "checkpoint_path":handoff_relpath(run_id)}
 
 
 def cancel(root:Path,run_id:str)->dict:

@@ -186,6 +186,25 @@ def _cmd_memory(args):
         if not hasattr(p,"delete"):raise SEHError("UNSUPPORTED","Memory provider does not support delete")
         _print({"deleted":p.delete(args.id)});return 0
 
+def _cmd_session(args):
+    from .session import save_checkpoint, load_checkpoint, rotation_instructions
+    root = _root(args)
+    if args.action == "checkpoint":
+        result = save_checkpoint(
+            root, args.task_id, goal=args.goal, completed=args.completed,
+            next_steps=args.next_steps, decisions=args.decision,
+            blockers=args.blocker, evidence=args.evidence,
+            status=args.status, source="interactive",
+        )
+    elif args.action == "status":
+        result = load_checkpoint(root, args.task_id)
+        if result is None: raise SEHError("HANDOFF_MISSING", args.task_id, 3)
+    else:
+        result = rotation_instructions(root, args.task_id, args.host)
+    _print(result)
+    return 0
+
+
 def _cmd_code(args):
     from .codeintel import health,search,symbol,index,impact,affected_tests
     from .config import load_config
@@ -370,6 +389,18 @@ def build_parser()->argparse.ArgumentParser:
     r=s.add_parser("add");r.add_argument("text");r.add_argument("--tags",action="append");r.add_argument("--evidence",action="append")
     r=s.add_parser("search");r.add_argument("query");s.add_parser("list");r=s.add_parser("delete");r.add_argument("id")
     sp.set_defaults(func=_cmd_memory)
+    sp=sub.add_parser("session",help="Small durable task checkpoints and manual interactive session rotation");common(sp)
+    s=sp.add_subparsers(dest="action",required=True)
+    r=s.add_parser("checkpoint",help="Save a compact handoff at a verified task boundary")
+    r.add_argument("--task-id",required=True);r.add_argument("--goal",required=True)
+    r.add_argument("--completed",action="append");r.add_argument("--next",dest="next_steps",action="append")
+    r.add_argument("--decision",action="append");r.add_argument("--blocker",action="append")
+    r.add_argument("--evidence",action="append")
+    r.add_argument("--status",choices=["IN_PROGRESS","VERIFIED","COMPLETED","BLOCKED"],default="IN_PROGRESS")
+    r=s.add_parser("status");r.add_argument("task_id")
+    r=s.add_parser("resume",help="Print /clear instructions and a memory-based restart prompt")
+    r.add_argument("task_id");r.add_argument("--host",choices=["claude","codex","opencode","agy"],default="claude")
+    sp.set_defaults(func=_cmd_session)
     sp=sub.add_parser("code");common(sp);s=sp.add_subparsers(dest="action",required=True)
     s.add_parser("doctor")
     r=s.add_parser("search");r.add_argument("query")

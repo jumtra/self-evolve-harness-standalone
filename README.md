@@ -127,6 +127,7 @@ cat "$DEMO_ROOT/result.txt"
 |---|---|
 | Preview and sync configuration | `seh sync --root .` → `seh sync --root . --apply` |
 | Save and search notes | `seh memory add 'Check auth expiry first' --root .` / `seh memory search 'auth' --root .` |
+| Task checkpoint & resume | `seh session checkpoint --task-id T1 --goal '...'` / `seh session resume T1` |
 | Search code | `seh code search 'timeout' --root .` |
 | Lint Skills | `seh author lint --root .` |
 | Check optimization status | `seh optimize status --root .` |

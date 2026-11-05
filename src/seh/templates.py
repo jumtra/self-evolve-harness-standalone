@@ -16,13 +16,13 @@ Run `seh doctor --root .` after applying. Do not overwrite user-owned files. Do 
 "work": (
     "Plan and implement coding tasks with evidence-based checks and bounded repair. "
     "Use for feature development, bug fixes and structured code changes, not for casual questions.",
-    """# Work
+    """# Work — context-efficient delivery
 
-For small low-risk changes, work natively and run the narrowest relevant tests. For larger, parallel or higher-risk changes, create a TaskSpec and use `seh work run --task <json> --host <host> --root . --apply` only after explaining the exact edits.
+Choose the **smallest useful workflow**. A small, low-risk change: inspect only relevant files, edit, run focused tests, inspect diff, report outcome. Do NOT automatically write a requirements document, design document or implementation plan. Medium changes: a brief inline checklist only if useful. Large, cross-component, risky, or multi-host changes: use a scoped TaskSpec and staged verification; write formal documents only when requested or genuinely needed for coordination/decisions. Prefer direct user instructions over ceremonial workflow. Keep outputs concise; show evidence rather than full tool logs.
 
-For authoring or changing SKILL.md, agent instructions, persistent prompts or rules: **Explore -> Decide -> Plan -> Baseline eval -> Implement -> Verify -> Compare -> Promote**. Record evidence and run `seh author lint --root .` and `seh author gate ...` when behavior changes. Reuse existing tools; do not add an unnecessary skill. All fix loops must be bounded and verified by deterministic tests. Never claim tests passed unless their tool output says so.
+**At a natural boundary** (verified subtask finished, before changing feature area/host, or context getting crowded): write a compact factual handoff with `seh session checkpoint --task-id <id> --goal "..." --completed "verified result" --next "next action" --evidence "file/test reference" --root .`. Include decisions, known failures and uncommitted changes, not raw transcripts or secrets. Confirm that the checkpoint succeeded. Then run `seh session resume <id> --host <host> --root .`; in an idle interactive Claude Code or Codex session, use `/clear`, and in OpenCode use `/new`, then paste `resume_prompt`. If a safe clear is unavailable, instruct the user to start a new session; never claim the context was cleared when it wasn't. During an indivisible step, prefer `/compact` over clearing. For managed DAG runs, checkpoints are written automatically after verified waves, with new CLI sessions per node.
 
-Do not run `seh optimize` for routine development. Optimization is explicit opt-in and candidates never auto-promote. Respect user and repository policy, approval and git diff boundaries.
+After completion, explicitly write **完了** and briefly state changed files plus **tests actually run**. If tests fail or edits were not applied, say **未完了** or **検証済み・未適用** instead; never claim completion without evidence. Use existing tools, bounded repair, and the narrowest checks. For changing Skill or prompt behavior use the existing author/eval gate; do not optimize routine tasks or add unnecessary Skills. Respect approvals, ownership, and host capabilities.
 """)
 }
 
@@ -92,9 +92,10 @@ MARK_END = "<!-- SEH:END managed -->"
 def instruction_block(cfg: Config) -> str:
     return (f"{MARK_BEGIN}\n"
             "## Self-Evolve Harness (short contract)\n"
-            "Use existing tools and small prompts before introducing a new Skill. "
-            "For Skill/prompt changes follow Explore -> Plan -> Baseline -> Edit -> Verify -> Compare -> Approve. "
-            "Use deterministic tests instead of guessing. Keep edits scoped; seek approval for privileged changes. "
+            "Prefer direct changes and focused tests; do NOT create requirements/design/plan docs for every small task. "
+            "At verified boundaries checkpoint compact facts (`seh session checkpoint`), then start fresh and resume from memory if needed. "
+            "State completion explicitly, never claim unverified or unapplied work is done. "
+            "For Skill/prompt changes use existing eval/author gates. Keep edits scoped and approved. "
             "Only invoke `seh optimize` on explicit request. "
             "Use `seh doctor` for capability diagnostics; unsupported tools are not assumed available.\n"
             f"Configured code intelligence: {cfg.code_intelligence}. Memory: {cfg.memory}.\n"

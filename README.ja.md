@@ -127,6 +127,7 @@ cat "$DEMO_ROOT/result.txt"
 |---|---|
 | 設定の差分確認 → 同期 | `seh sync --root .` → `seh sync --root . --apply` |
 | メモを保存・検索 | `seh memory add '認証の有効期限を先に確認' --root .` / `seh memory search '認証' --root .` |
+| タスク境界チェックポイント・再開 | `seh session checkpoint --task-id T1 --goal '...'` / `seh session resume T1` |
 | コードを検索 | `seh code search 'timeout' --root .` |
 | Skillを検査 | `seh author lint --root .` |
 | 最適化の状態を確認 | `seh optimize status --root .` |

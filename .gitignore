@@ -11,3 +11,6 @@ dist/
 .harness/artifacts/
 .harness/backups/
 .harness/locks/
+
+# Compact local handoffs may contain project-specific context; never commit them.
+.harness/memory/handoffs/

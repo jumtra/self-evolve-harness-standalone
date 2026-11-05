@@ -98,8 +98,8 @@ The installed package itself is upgraded; existing `.harness/config.toml`, proje
 For offline verified upgrades from a local wheel:
 
 ```bash
-shasum -a 256 dist/self_evolve_harness_standalone-0.0.2-py3-none-any.whl
-harness update --wheel dist/self_evolve_harness_standalone-0.0.2-py3-none-any.whl \
+shasum -a 256 dist/self_evolve_harness_standalone-0.0.3-py3-none-any.whl
+harness update --wheel dist/self_evolve_harness_standalone-0.0.3-py3-none-any.whl \
   --sha256 YOUR_VERIFIED_64_HEX_DIGEST --yes
 ```
 
