@@ -10,6 +10,113 @@ from .util import SEHError, read_json, write_json, now
 def _print(data):print(json.dumps(data,indent=2,ensure_ascii=False,default=str))
 def _root(args):return Path(getattr(args,"root", ".")).resolve()
 
+def _project_target(args) -> Path:
+    target = Path(getattr(args, "root", None) or Path.cwd()).resolve()
+    if target in (Path.home(), Path("/")):
+        raise SEHError("INVALID_PROJECT_ROOT", f"Cannot apply harness directly to {target}", 2)
+    return target
+
+def _cmd_apply(args):
+    """CWD-first installation; guided TTY choices or deterministic non-interactive use."""
+    from .config import load_config
+    from .install import installation_plan, apply_install
+    root = _project_target(args)
+    cfg = load_config(root)
+    if args.hosts is not None: cfg.hosts = [h.strip() for h in args.hosts.split(",") if h.strip()]
+    if args.profile is not None: cfg.profile = args.profile
+    if args.graph is not None: cfg.code_intelligence = args.graph
+    if args.memory is not None: cfg.memory = args.memory
+    if args.runtime is not None: cfg.runtime_mode = args.runtime
+    # No extra import or stdin inspection on scripted apply/check/dry-run.
+    from .apply_wizard import should_prompt, select_options, confirm_apply, WizardCancelled
+    interactive = should_prompt(args)
+    detect_tests = args.detect_tests
+    if interactive:
+        try:
+            detect_tests |= select_options(cfg, args, root)
+        except WizardCancelled:
+            _print({"status": "CANCELLED", "root": str(root), "changed_count": 0})
+            return 0
+    cfg.validate()
+    if detect_tests and not cfg.tests:
+        from .detect import detect
+        cfg.tests = detect(root)["test_commands"]
+    plan = installation_plan(root, cfg)
+    changes = [c for c in plan["changes"] if c["action"] != "unchanged"]
+    status = "BLOCKED" if plan["conflicts"] else "UP_TO_DATE" if not changes else "CHANGES_PENDING"
+    summary = {"status": status, "root": str(root), "harness_version": __version__,
+               "profile": cfg.profile, "hosts": cfg.hosts,
+               "code_intelligence": cfg.code_intelligence, "memory": cfg.memory,
+               "runtime_mode": cfg.runtime_mode, "tests_detected": bool(detect_tests),
+               "changes": changes, "conflicts": plan["conflicts"],
+               "changed_count": len(changes)}
+    if args.dry_run or args.check or plan["conflicts"]:
+        _print(summary)
+        return 5 if args.check and (changes or plan["conflicts"]) else 0
+    if not changes:
+        _print(summary)
+        return 0
+    if interactive:
+        try:
+            if not confirm_apply(cfg, changes, root):
+                _print({**summary, "status": "CANCELLED"})
+                return 0
+        except WizardCancelled:
+            _print({**summary, "status": "CANCELLED"})
+            return 0
+    result = apply_install(root, cfg)
+    _print({**summary, "status": result["status"], "snapshot_id": result["snapshot_id"]})
+    return 0
+
+def _cmd_status(args):
+    from .config import load_config
+    from .install import installation_plan, OWNERSHIP
+    root = _project_target(args)
+    ownership_path = root / OWNERSHIP
+    ownership = read_json(ownership_path, {})
+    cfg = load_config(root)
+    plan = installation_plan(root, cfg)
+    changes = [c for c in plan["changes"] if c["action"] != "unchanged"]
+    status = "BLOCKED" if plan["conflicts"] else "UP_TO_DATE" if not changes else "CHANGES_PENDING"
+    last_snapshot_id = ownership.get("last_snapshot_id")
+    if not last_snapshot_id:
+        backups = root / ".harness" / "backups"
+        if backups.exists():
+            snaps = sorted([p.name for p in backups.glob("snapshot-*") if p.is_dir()])
+            if snaps:
+                last_snapshot_id = snaps[-1]
+    installed_version = ownership.get("installed_version") or ownership.get("version") or __version__
+    _print({
+        "status": status,
+        "root": str(root),
+        "installed_version": installed_version,
+        "harness_version": __version__,
+        "last_snapshot_id": last_snapshot_id,
+        "changes": changes,
+        "conflicts": plan["conflicts"],
+        "changed_count": len(changes),
+    })
+    return 0
+
+def _cmd_rollback(args):
+    from .install import rollback, OWNERSHIP
+    root = _project_target(args)
+    snapshot = getattr(args, "snapshot", None)
+    if not snapshot:
+        ownership = read_json(root / OWNERSHIP, {})
+        snapshot = ownership.get("last_snapshot_id")
+        if not snapshot:
+            backups = root / ".harness" / "backups"
+            if backups.exists():
+                snaps = sorted([p.name for p in backups.glob("snapshot-*") if p.is_dir()])
+                if snaps:
+                    snapshot = snaps[-1]
+        if not snapshot:
+            raise SEHError("NO_SNAPSHOTS", "No snapshots available to rollback", 3)
+    result = rollback(root, snapshot)
+    _print(result)
+    return 0
+
 def _cmd_init(args):
     from .config import Config, load_config
     from .install import installation_plan,apply_install
@@ -312,6 +419,27 @@ def build_parser()->argparse.ArgumentParser:
     p.add_argument("--version",action="version",version=f"seh {__version__}")
     sub=p.add_subparsers(dest="command",required=True)
     def common(sp):sp.add_argument("--root",default=".")
+    sp=sub.add_parser("apply",help="Apply or refresh harness installation for project")
+    sp.add_argument("--root",help="Project root (default CWD)")
+    sp.add_argument("--dry-run",action="store_true")
+    sp.add_argument("--check",action="store_true")
+    sp.add_argument("--hosts")
+    sp.add_argument("--profile",choices=["minimal","balanced","full"])
+    sp.add_argument("--graph",choices=["codegraph","graphify","none"])
+    sp.add_argument("--memory",choices=["file","engram"])
+    sp.add_argument("--detect-tests",action="store_true",help="Detect candidate test commands without running tests")
+    sp.add_argument("--runtime",choices=["native","managed"],help="Default runtime; per-task runtime remains configurable")
+    mode = sp.add_mutually_exclusive_group()
+    mode.add_argument("--interactive",action="store_true",help="Always ask for choices, even when stdin is redirected")
+    mode.add_argument("--non-interactive",action="store_true",help="Never prompt (for scripts and CI)")
+    sp.set_defaults(func=_cmd_apply)
+    sp=sub.add_parser("status",help="Show CWD project harness drift/installation")
+    sp.add_argument("--root",help="Project root (default CWD)")
+    sp.set_defaults(func=_cmd_status)
+    sp=sub.add_parser("rollback",help="Roll back files applied to this project")
+    sp.add_argument("--root",help="Project root (default CWD)")
+    sp.add_argument("snapshot",nargs="?",help="Optional snapshot ID to rollback to")
+    sp.set_defaults(func=_cmd_rollback)
     init=sub.add_parser("init",help="Preview/create minimal portable harness (dry-run default)");common(init)
     init.add_argument("--profile",choices=["minimal","balanced","full"])
     init.add_argument("--hosts",help="Comma-separated claude,codex,opencode,agy")

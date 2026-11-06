@@ -4,6 +4,9 @@ Run `seh <command> --help` for the authoritative current flags. All commands sup
 
 | Command group | Main actions | Failure conditions |
 |---|---|---|
+| `apply` | Interactive configuration (TTY), `--interactive`, `--non-interactive`, `--runtime`, `--dry-run`, `--check`, `--hosts`, `--profile` | cancelled, owned-file conflict, invalid root |
+| `status` | installation version, planned drift | malformed config or conflict |
+| `rollback` | latest apply snapshot or explicit ID | edited-after-apply conflict |
 | `init` | detect/setup plan, `--apply` | ownership conflict, invalid config |
 | `sync` | re-render plan, `--apply` | conflicting generated artifacts |
 | `doctor` | check host tools, providers, config | missing optional components reported |

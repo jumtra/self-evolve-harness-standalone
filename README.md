@@ -1,3 +1,11 @@
+# self-evolve-harness 0.0.4: interactive `harness apply`
+
+Running `harness apply` from a terminal now offers selectable profile, multiple hosts, code intelligence, memory, runtime mode and optional test-command detection. Existing choices are loaded from `.harness/config.toml`; every change is previewed and requires confirmation. `--non-interactive` preserves machine-friendly JSON output and scripted apply behavior; `--dry-run` and `--check` do not prompt unless `--interactive` is explicitly specified. The selected hosts control generated host configuration, **not** per-task Host/Model routing.
+
+Details: [Apply choices and safety](docs/APPLY_CHOICES.ja.md) / [0.0.4 Release Notes](RELEASE_NOTES_0.0.4.ja.md).
+
+---
+
 <div align="center">
 
 # self-evolve-harness

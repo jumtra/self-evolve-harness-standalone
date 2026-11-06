@@ -1,3 +1,21 @@
+# self-evolve-harness v0.0.4 — `harness apply`で設定を選択
+
+**ターミナルから `harness apply` を実行すると、利用Host・Profile・Memory・コード解析・実行方式を対話的に選べます。** 複数Hostを選択可能で、次回の再適用でも変更できます。TaskごとのHost/Model選択は別です。
+
+```bash
+cd /path/to/project
+harness apply                 # 対話ターミナルでは選択画面
+harness apply --dry-run       # 変更なしのプレビュー。質問なし
+harness apply --non-interactive  # CI向け。質問なし
+harness apply --interactive --dry-run  # 選択を変えてプレビュー
+harness status
+harness rollback
+```
+
+詳細: [対話式apply設定・安全性](docs/APPLY_CHOICES.ja.md) / [v0.0.4リリースノート](RELEASE_NOTES_0.0.4.ja.md)
+
+---
+
 <div align="center">
 
 # self-evolve-harness

@@ -105,7 +105,8 @@ def apply_install(root: Path, cfg: Config) -> dict:
                 else:
                     atomic_text(path, plan["wanted"][item["path"]])
             files = {rel: filehash(safe_path(root, rel)) for rel in plan["wanted"]}
-            write_json(ownership_path, {"schema_version": 1, "files": files})
+            from . import __version__
+            write_json(ownership_path, {"schema_version": 1, "installed_version": __version__, "last_snapshot_id": snapshot_id, "files": files})
             meta["previous_ownership"] = old_data
             write_json(backup / "meta.json", meta)
         except Exception:
